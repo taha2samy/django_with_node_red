@@ -159,8 +159,7 @@ class Series(AsyncWebsocketConsumer):
     url_external = "ws://example.com"
     group_name = "button_group"
     status_key = "button_status"
-    max_points = 10  # الحد الأقصى للنقاط المخزنة
-
+    max_points = 10  
     async def connect(self):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -169,10 +168,7 @@ class Series(AsyncWebsocketConsumer):
         except Exception as e:
             raise Exception(f"Cannot connect to {self.url_external}: {e}")
 
-        # استرجاع النقاط المخزنة من الكاش
-        self.points = cache.get(self.status_key, [])  # افتراض قائمة فارغة إذا لم تكن موجودة
-
-        # إرسال النقاط المخزنة للعميل
+        self.points = cache.get(self.status_key, []) 
         for point in self.points:
             await self.send(text_data=json.dumps({'message': point}))
 
@@ -191,18 +187,13 @@ class Series(AsyncWebsocketConsumer):
             try:
                 message = await self.websocket.recv()
                 message = json.loads(message)
-                # افترض أن الرسالة تحتوي على النقاط في الشكل {'x': value, 'y': value}
                 point = {'x': message['x'], 'y': message['y']}
 
-                # إضافة النقطة الجديدة إلى القائمة
                 self.points.append(point)
                 if len(self.points) > self.max_points:
-                    self.points.pop(0)  # إزالة أقدم نقطة إذا تجاوزت القائمة الحد الأقصى
-
-                # تحديث الكاش بالنقاط الجديدة
+                    self.points.pop(0) 
                 cache.set(self.status_key, self.points)
 
-                # إرسال النقطة الجديدة للعميل مباشرة
                 await self.send_to_web_page(point)
 
             except websockets.ConnectionClosed:
