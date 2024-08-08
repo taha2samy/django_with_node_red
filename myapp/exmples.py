@@ -205,7 +205,6 @@ class Series(AsyncWebsocketConsumer):
 
     async def send_to_web_page(self, point):
         try:
-            # إرسال الرسالة للصفحة الويب
             await self.send(text_data=json.dumps({'message': point}))
         except Exception as e:
             print(f"An error occurred while sending: {e}")
