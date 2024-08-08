@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Switch Example</title>
+    <style>
+        /* Simple switch styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            border-radius: 50%;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Switch Example</h1>
+    
+    <!-- Switch Button -->
+    <label class="switch">
+        <input id="switchInput" type="checkbox">
+        <span class="slider round"></span>
+    </label>
+
+    <!-- Display WebSocket Status -->
+    <div id="status">Loading...</div>
+    <label>
+        <button id="Button">Click Me</button>
+    </label>
+    <div id="statusbutton">Loading...</div>
+
+    <script>
+        // Create WebSocket connections for different purposes
+        const wsSwitch = new WebSocket('ws://' + window.location.host + '/ws/switch/');
+        const wsButton = new WebSocket('ws://' + window.location.host + '/ws/button/');
+
+        // WebSocket for switch input
+        wsSwitch.onopen = function() {
+            console.log('WebSocket connection established for switch');
+        };
+
+        wsSwitch.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const payload = data.message.payload;
+            const switchInput = document.getElementById('switchInput');
+            const statusDiv = document.getElementById('status');
+
+            // Update switch based on payload
+            switchInput.checked = (payload === true);
+            statusDiv.innerHTML += `<br>${JSON.stringify(data)}`;
+        };
+
+        // WebSocket for button input
+        wsButton.onopen = function() {
+            console.log('WebSocket connection established for button');
+        };
+
+        wsButton.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const payload = data.message.payload;
+            const statusDiv = document.getElementById('statusbutton');
+            statusDiv.innerHTML += `<br>${JSON.stringify(data)}`;
+        };
+
+        // Handle switch input change
+        const switchInput = document.getElementById('switchInput');
+        switchInput.addEventListener('change', function() {
+            const payload = switchInput.checked;
+            wsSwitch.send(JSON.stringify({ payload: payload, method: 'switch' }));
+        });
+
+        // Handle button click
+        const buttonInput = document.getElementById('Button');
+        buttonInput.addEventListener('click', function() {
+            const currentDate = new Date();
+            const payload = "Button clicked";
+            const message = {
+                payload: payload,
+                time: currentDate.toISOString(),
+                method: 'button'
+            };
+            wsButton.send(JSON.stringify(message));
+        });
+
+        wsSwitch.onerror = function(error) {
+            console.error('WebSocket error (switch):', error);
+        };
+
+        wsButton.onerror = function(error) {
+            console.error('WebSocket error (button):', error);
+        };
+
+        wsSwitch.onclose = function(event) {
+            console.log('WebSocket connection closed (switch):', event);
+        };
+
+        wsButton.onclose = function(event) {
+            console.log('WebSocket connection closed (button):', event);
+        };
+    </script>
+</body>
+</html>
