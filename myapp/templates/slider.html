@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slider Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        #sliderInput {
+            width: 90%; /* زاد العرض إلى 90% */
+            height: 25px; /* زاد الارتفاع */
+            margin: 20px 0;
+        }
+
+        #sliderValue {
+            display: block;
+            margin-top: 10px;
+            font-size: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Slider Control</h1>
+
+        <!-- Slider Input -->
+        <input id="sliderInput" type="range" min="0" max="100" step="1" value="50">
+        <span id="sliderValue">50</span>
+
+        <!-- Display WebSocket Status -->
+        <div id="status">Loading...</div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://' + window.location.host + '/ws/mywebsocket/BaseSlider_1');
+
+        ws.onopen = function() {
+            console.log('WebSocket connection established');
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const payload = data.message.payload;
+            const sliderInput = document.getElementById('sliderInput');
+            const sliderValue = document.getElementById('sliderValue');
+            const statusDiv = document.getElementById('status');
+
+            // Update slider based on payload
+            sliderInput.value = payload;
+            sliderValue.innerHTML = payload;
+            statusDiv.innerHTML = 'Slider value: ' + payload;
+        };
+
+        ws.onclose = function(event) {
+            console.log('WebSocket connection closed:', event);
+        };
+
+        // Handle slider input change
+        const sliderInput = document.getElementById('sliderInput');
+        const sliderValue = document.getElementById('sliderValue');
+
+        sliderInput.addEventListener('input', function() {
+            const value = sliderInput.value;
+            sliderValue.innerHTML = value;
+            ws.send(JSON.stringify({ payload: parseInt(value) }));
+        });
+    </script>
+</body>
+</html>

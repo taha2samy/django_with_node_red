@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Series Data</title>
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const socket = new WebSocket("ws://" + window.location.host + "/ws/mywebsocket/series");
+
+            // Data arrays for Plotly.js
+            let xValues = [];
+            let yValues = [];
+
+            // Create a new plot
+            const plotData = [{
+                x: xValues,
+                y: yValues,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Series Data'
+            }];
+
+            const layout = {
+                title: 'Series Data',
+                xaxis: {
+                    title: 'X Values',
+                    showgrid: true,
+                    zeroline: true
+                },
+                yaxis: {
+                    title: 'Y Values',
+                    showline: true
+                }
+            };
+
+            Plotly.newPlot('myPlot', plotData, layout);
+
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                const message = data['message'];
+
+                // Update plot data
+                xValues.push(message.x);
+                yValues.push(message.y);
+
+                Plotly.update('myPlot', {
+                    x: [xValues],
+                    y: [yValues]
+                });
+            };
+
+            socket.onclose = function(e) {
+                console.error('WebSocket closed unexpectedly');
+            };
+        });
+    </script>
+</head>
+<body>
+    <h1>Series Data</h1>
+    <!-- Div for Plotly.js -->
+    <div id="myPlot" style="width: 100%; height: 400px;"></div>
+</body>
+</html>

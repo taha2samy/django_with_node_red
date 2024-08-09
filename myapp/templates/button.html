@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Button Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        #statusbutton {
+            margin-top: 20px;
+        }
+        #Button {
+            padding: 10px 20px;
+            font-size: 18px;
+            color: white;
+            background-color: #2196F3;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #Button:hover {
+            background-color: #0b7dda;
+        }
+        .link-button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            color: white;
+            background-color: #2196F3;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 18px;
+        }
+        .link-button:hover {
+            background-color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <h1>Button Control</h1>
+    <button id="Button">Click Me</button>
+    <div id="statusbutton">Loading...</div>
+    <br>
+    <a href="index.html" class="link-button">Back to Main Page</a>
+    <script>
+        const wsButton = new WebSocket('ws://' + window.location.host + '/ws/button/');
+        wsButton.onopen = function() {
+            console.log('WebSocket connection established for button');
+        };
+        wsButton.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const payload = data.message.payload;
+            const statusDiv = document.getElementById('statusbutton');
+            statusDiv.innerHTML += `<br>${JSON.stringify(data)}`;
+        };
+        const buttonInput = document.getElementById('Button');
+        buttonInput.addEventListener('click', function() {
+            const currentDate = new Date();
+            const payload = "Button clicked";
+            const message = {
+                payload: payload,
+                time: currentDate.toISOString(),
+                method: 'button'
+            };
+            wsButton.send(JSON.stringify(message));
+        });
+        wsButton.onerror = function(error) {
+            console.error('WebSocket error (button):', error);
+        };
+        wsButton.onclose = function(event) {
+            console.log('WebSocket connection closed (button):', event);
+        };
+    </script>
+</body>
+</html>
