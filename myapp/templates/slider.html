@@ -78,7 +78,8 @@
             // Update slider based on payload
             sliderInput.value = payload;
             sliderValue.innerHTML = payload;
-            statusDiv.innerHTML = 'Slider value: ' + payload;
+            statusDiv.innerHTML += JSON.stringify(data.message);
+            console.log(data.message)
         };
 
         ws.onclose = function(event) {
