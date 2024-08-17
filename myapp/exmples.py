@@ -4,28 +4,38 @@ import websockets
 import json
 from django.core.cache import cache
 from datetime import datetime
+from .models import Devices
+from asgiref.sync import sync_to_async
 
-
+cache.clear()
 class BaseWebSocketConsumer(AsyncWebsocketConsumer):
     url_external = "ws://example.com"  # Change to the actual URL
-    group_name = "group_name"  # Override in subclass
-    status_key = "status_key"  # Override in subclass
     cache_time = None
+    max_messages = 5  # Maximum number of messages to store
+
+    async def get_check_device(self, group_id):
+        device = await sync_to_async(Devices.objects.get)(Device_id=group_id)
+        data = {attr.name: getattr(device, attr.name) for attr in device._meta.fields}
+        return data
 
     async def connect(self):
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        self.group_name = self.scope['url_route']['kwargs'].get('group_id')
+        self.status_key = self.group_name
+        data = await self.get_check_device(self.group_name)
+        if data == {}:
+            self.close(code=403)
         await self.accept()
-
-        # Connect to external WebSocket
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        self.max_messages=data['points']
+        
+        print(f"this devivce {data}")
         await self.connect_external_ws()
 
-        # Start receiving messages from external WebSocket
         self.external_ws_task = asyncio.create_task(self.receive_from_external_ws())
 
-        # Send initial status if available
-        last_message = cache.get(self.status_key, None)
-        if last_message:
-            await self.send(text_data=json.dumps({'message': last_message}))
+        last_messages = cache.get(self.status_key, [])
+        for message in last_messages:
+            await self.send(text_data=json.dumps({'message': message}))
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -36,6 +46,7 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         message = json.loads(text_data)
+        message["group_id"] = self.group_name
         await self.send_to_external_ws(message)
 
     async def receive_from_external_ws(self):
@@ -54,12 +65,20 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         while True:
             try:
                 reconnection_attempts += 1
-                last_message = cache.get(self.status_key, {})
+                last_messages = cache.get(self.status_key, [])
+                last_message = last_messages[-1] if last_messages else {}
+                
                 if reconnection_attempts == 1:
                     last_message["disconnected_at"] = datetime.now().isoformat()
                 last_message["reconnection_attempts"] = reconnection_attempts
                 last_message["is_disconnected"] = True
-                cache.set(self.status_key, last_message, self.cache_time)
+                
+                if last_messages:
+                    last_messages[-1] = last_message
+                else:
+                    last_messages.append(last_message)
+                    
+                cache.set(self.status_key, last_messages, self.cache_time)
                 await self.send(text_data=json.dumps({'message': last_message}))
 
                 await asyncio.sleep(5)
@@ -68,16 +87,18 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
             except Exception:
                 pass
 
-        # Clear disconnection status after successful reconnection
-        last_message = cache.get(self.status_key, {})
-        last_message.pop("disconnected_at", None)
-        last_message.pop("reconnection_attempts", None)
-        last_message["is_disconnected"] = False
-        cache.set(self.status_key, last_message, self.cache_time)
-        await self.channel_layer.group_send(
-            self.group_name,
-            {'type': 'send_message', 'message': last_message}
-        )
+        last_messages = cache.get(self.status_key, [])
+        if last_messages:
+            last_message = last_messages[-1]
+            last_message.pop("disconnected_at", None)
+            last_message.pop("reconnection_attempts", None)
+            last_message["is_disconnected"] = False
+            cache.set(self.status_key, last_messages, self.cache_time)
+            
+            await self.channel_layer.group_send(
+                self.group_name,
+                {'type': 'send_message', 'message': last_message}
+            )
 
     async def connect_external_ws(self):
         try:
@@ -98,102 +119,18 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'message': event['message']}))
 
     async def handle_message(self, message):
-        last_stored_message = cache.get(self.status_key, None)
-        if message != last_stored_message:
-            cache.set(self.status_key, message, self.cache_time)
+        last_messages = cache.get(message['group_id'], [])
+        
+        if not last_messages or message != last_messages[-1]:
+            if len(last_messages) >= self.max_messages:
+                last_messages.pop(0)  # Remove the oldest message
+            
+            last_messages.append(message)
+            cache.set(message['group_id'], last_messages, self.cache_time)
+            
             await self.channel_layer.group_send(
-                self.group_name,
+                message['group_id'],
                 {'type': 'send_message', 'message': message}
-            )
-
-
-class BaseSlider(BaseWebSocketConsumer):
-    group_name = "switch_button_group"
-    status_key = "switch_button_status"
-
-
-class BaseSwitchButton(BaseWebSocketConsumer):
-    group_name = "switch_button_group"
-    status_key = "switch_button_status"
-
-
-class BaseButton(BaseWebSocketConsumer):
-    group_name = "button_group"
-    status_key = "button_status"
-
-
-class BaseSeries(BaseWebSocketConsumer):
-    url_external = "ws://example.com"  # Change to the actual URL
-    group_name = "button_group"
-    status_key = "button_status"
-    max_points = 10
-    cache_time = None
-
-    async def connect(self):
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
-        await self.connect_external_ws()
-        self.points = cache.get(self.status_key, [])
-        for point in self.points:
-            await self.send(text_data=json.dumps({'message': point}))
-        self.external_ws_task = asyncio.create_task(self.receive_from_external_ws())
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        if hasattr(self, 'external_ws_task'):
-            self.external_ws_task.cancel()
-        if hasattr(self, 'websocket') and self.websocket:
-            await self.websocket.close()
-
-    async def receive_from_external_ws(self):
-        reconnection_attempts = 0
-        while True:
-            try:
-                message = json.loads(await self.websocket.recv())
-                point = {'x': message.get('x'), 'y': message.get('y')}
-                self.points.append(point)
-                if len(self.points) > self.max_points:
-                    self.points.pop(0)
-                cache.set(self.status_key, self.points, self.cache_time)
-                await self.channel_layer.group_send(
-                    self.group_name,
-                    {'type': 'send_message', 'message': message}
-                )
-                reconnection_attempts = 0  # Reset reconnection attempts on successful reception
-            except websockets.ConnectionClosed:
-                await self.handle_disconnection()
-
-    async def handle_disconnection(self):
-        reconnection_attempts = 0
-        connected = False
-        while not connected:
-            try:
-                reconnection_attempts += 1
-                last_message = {
-                    "x": None,
-                    "y": None,
-                    "is_disconnected": True,
-                    "reconnection_attempts": reconnection_attempts,
-                    "disconnected_at": datetime.now().isoformat()
-                }
-                cache.set(self.status_key, last_message, self.cache_time)
-                await self.send(text_data=json.dumps({'message': last_message}))
-                await asyncio.sleep(5)  # Adjust the delay as needed
-                await self.connect_external_ws()
-                connected = True
-            except Exception as e:
-                # Log or handle the exception as needed
-                pass
-
-        last_message = cache.get(self.status_key, {})
-        if isinstance(last_message, dict):
-            last_message.pop("disconnected_at", None)
-            last_message.pop("reconnection_attempts", None)
-            last_message["is_disconnected"] = False
-            cache.set(self.status_key, last_message, self.cache_time)
-            await self.channel_layer.group_send(
-                self.group_name,
-                {'type': 'send_message', 'message': last_message}
             )
 
 
