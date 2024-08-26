@@ -29,7 +29,7 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         self.max_messages=data['points']
         self.user = str(self.scope["user"])
         
-        print(f"this devivce {data}")
+     
         await self.connect_external_ws()
 
         self.external_ws_task = asyncio.create_task(self.receive_from_external_ws())

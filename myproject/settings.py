@@ -34,7 +34,6 @@ INSTALLED_APPS = [
     'daphne',
     'channels',
     'node_red',
-    'guardian',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -121,7 +120,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',  # الافتراضية
-    'guardian.backends.ObjectPermissionBackend',
 )
 STATIC_URL = 'static/'
 
