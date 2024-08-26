@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
-class MyappConfig(AppConfig):
+class Node_redConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'myapp'
+    name = 'node_red'

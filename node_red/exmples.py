@@ -7,7 +7,6 @@ from datetime import datetime
 from .models import Devices
 from asgiref.sync import sync_to_async
 
-cache.clear()
 class BaseWebSocketConsumer(AsyncWebsocketConsumer):
     url_external = "ws://example.com"  # Change to the actual URL
     cache_time = None
@@ -22,18 +21,20 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         self.group_name = self.scope['url_route']['kwargs'].get('group_id')
         self.status_key = self.group_name
         data = await self.get_check_device(self.group_name)
+        
         if data == {}:
             self.close(code=403)
         await self.accept()
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         self.max_messages=data['points']
+        self.user = str(self.scope["user"])
         
         print(f"this devivce {data}")
         await self.connect_external_ws()
 
         self.external_ws_task = asyncio.create_task(self.receive_from_external_ws())
 
-        last_messages = cache.get(self.status_key, [])
+        last_messages = cache.get(self.group_name, [])
         for message in last_messages:
             await self.send(text_data=json.dumps({'message': message}))
 
@@ -47,6 +48,7 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         message = json.loads(text_data)
         message["group_id"] = self.group_name
+        message["user"]=self.user
         await self.send_to_external_ws(message)
 
     async def receive_from_external_ws(self):
@@ -54,7 +56,8 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
             try:
                 message = json.loads(await self.websocket.recv())
                 message["is_disconnected"] = False
-                await self.handle_message(message)
+                if message["group_id"]==self.group_name:
+                    await self.handle_message(message)
             except websockets.ConnectionClosed:
                 await self.handle_disconnection()
             except Exception:
@@ -65,7 +68,7 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         while True:
             try:
                 reconnection_attempts += 1
-                last_messages = cache.get(self.status_key, [])
+                last_messages = cache.get(self.group_name, [])
                 last_message = last_messages[-1] if last_messages else {}
                 
                 if reconnection_attempts == 1:
@@ -78,7 +81,7 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
                 else:
                     last_messages.append(last_message)
                     
-                cache.set(self.status_key, last_messages, self.cache_time)
+                cache.set(self.group_name, last_messages, self.cache_time)
                 await self.send(text_data=json.dumps({'message': last_message}))
 
                 await asyncio.sleep(5)
@@ -87,13 +90,13 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
             except Exception:
                 pass
 
-        last_messages = cache.get(self.status_key, [])
+        last_messages = cache.get(self.group_name, [])
         if last_messages:
             last_message = last_messages[-1]
             last_message.pop("disconnected_at", None)
             last_message.pop("reconnection_attempts", None)
             last_message["is_disconnected"] = False
-            cache.set(self.status_key, last_messages, self.cache_time)
+            cache.set(self.group_name, last_messages, self.cache_time)
             
             await self.channel_layer.group_send(
                 self.group_name,
@@ -119,17 +122,17 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'message': event['message']}))
 
     async def handle_message(self, message):
-        last_messages = cache.get(message['group_id'], [])
+        last_messages = cache.get(self.group_name, [])
         
         if not last_messages or message != last_messages[-1]:
             if len(last_messages) >= self.max_messages:
                 last_messages.pop(0)  # Remove the oldest message
             
             last_messages.append(message)
-            cache.set(message['group_id'], last_messages, self.cache_time)
+            cache.set(self.group_name, last_messages, self.cache_time)
             
             await self.channel_layer.group_send(
-                message['group_id'],
+                self.group_name,
                 {'type': 'send_message', 'message': message}
             )
 
