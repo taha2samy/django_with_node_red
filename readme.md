@@ -1,5 +1,3 @@
-To include this information in your README, you can use the following section:
-
 ---
 
 ### Node-RED Configuration
