@@ -403,9 +403,6 @@ The following Node-RED flow is designed to work when Node-RED is running on port
     }
 ]
 ```
-Here's a section you can add to your `README.md` that describes the setup and usage for your Node-RED flow, specifically mentioning the need to adjust the external URL in `consumer.py` if there are any changes:
-
----
 
 ### Node-RED Flow Configuration
 
@@ -433,7 +430,7 @@ For example, if the WebSocket server moves from `localhost:1881` to another IP o
 websocket_url = "ws://<new_server_ip>:<new_port>/ws/mywebsocket/test"
 
 ```
-
+as i mentioned you can change websocket_url from consumers.py remember you must change it in node red too 
 Ensure that this URL matches the server's address and port for the WebSocket connection to function correctly.
 
 ---
