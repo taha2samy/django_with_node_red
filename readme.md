@@ -1,6 +1,3 @@
-It looks like there was a misunderstanding with the YAML syntax in your README section. YAML doesn't support JSON objects directly under a list item without proper formatting. Instead of including JSON directly within a YAML document, you can present it as a code block or separate the YAML part from the code section.
-
-Here’s a revised version:
 
 ---
 
