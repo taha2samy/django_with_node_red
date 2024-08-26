@@ -1,3 +1,7 @@
+It looks like there was a misunderstanding with the YAML syntax in your README section. YAML doesn't support JSON objects directly under a list item without proper formatting. Instead of including JSON directly within a YAML document, you can present it as a code block or separate the YAML part from the code section.
+
+Here’s a revised version:
+
 ---
 
 ### Node-RED Configuration
@@ -8,32 +12,6 @@ The following Node-RED flow is designed to work when Node-RED is running on port
 
 ```json
 [
-    {
-        "id": "a7034deaa5ae9aea",
-        "type": "websocket out",
-        "z": "c2d71647e91e29d4",
-        "name": "",
-        "server": "51845eb271625baa",
-        "client": "",
-        "x": 820,
-        "y": 220,
-        "wires": []
-    },
-    {
-        "id": "9a1b51147bbdbd94",
-        "type": "websocket in",
-        "z": "c2d71647e91e29d4",
-        "name": "",
-        "server": "51845eb271625baa",
-        "client": "",
-        "x": 190,
-        "y": 220,
-        "wires": [
-            [
-                "5594dc667bf68351"
-            ]
-        ]
-    },
     {
         "id": "7462ed6aed72ad5b",
         "type": "switch",
