@@ -10,6 +10,8 @@ from .models import Devices
 from adrf.views import APIView
 from asgiref.sync import sync_to_async
 from adrf.decorators import api_view
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 class MyDataView(APIView):
@@ -24,11 +26,12 @@ class MyDataView(APIView):
                 
                 if len(last_messages) >= max_messages:
                     last_messages.pop(0)  # Remove the oldest message
-                
+
+
                 last_messages.append(message)
                 print(str(message["group_id"]))
                 cache.set(str(message["group_id"]), last_messages, None)
-               
+
             return Response({"message----------------": "Data received successfully!"}, status=status.HTTP_200_OK)
 
         except json.JSONDecodeError:

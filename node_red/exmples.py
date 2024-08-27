@@ -114,11 +114,6 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'message': event['message']}))
 
     async def handle_message(self, message):
-        if not self.last_messages or message != self.last_messages[-1]:
-            if len(self.last_messages) >= self.max_messages:
-                self.last_messages.pop(0)  # Remove the oldest message
-            
-            self.last_messages.append(message)
 
             await self.channel_layer.group_send(
                 self.group_name,
