@@ -6,11 +6,17 @@ from django.core.cache import cache
 from datetime import datetime
 from .models import Devices
 from asgiref.sync import sync_to_async
+import json
+import asyncio
+from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import sync_to_async
+import websockets
+from datetime import datetime
 
 class BaseWebSocketConsumer(AsyncWebsocketConsumer):
     url_external = "ws://example.com"  # Change to the actual URL
-    cache_time = None
     max_messages = 5  # Maximum number of messages to store
+    last_messages = []  # Store last messages in memory
 
     async def get_check_device(self, group_id):
         device = await sync_to_async(Devices.objects.get)(Device_id=group_id)
@@ -19,22 +25,22 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.group_name = self.scope['url_route']['kwargs'].get('group_id')
-        self.status_key = self.group_name
         data = await self.get_check_device(self.group_name)
         
-        if data == {}:
-            self.close(code=403)
+        if not data:
+            await self.close(code=403)
+
         await self.accept()
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        self.max_messages=data['points']
+        self.max_messages = data['points']
         self.user = str(self.scope["user"])
-        
-     
+
         await self.connect_external_ws()
 
         self.external_ws_task = asyncio.create_task(self.receive_from_external_ws())
-
+        print(self.group_name)
         last_messages = cache.get(self.group_name, [])
+        print("length",self.group_name,len(last_messages))
         for message in last_messages:
             await self.send(text_data=json.dumps({'message': message}))
 
@@ -48,7 +54,7 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         message = json.loads(text_data)
         message["group_id"] = self.group_name
-        message["user"]=self.user
+        message["user"] = self.user
         await self.send_to_external_ws(message)
 
     async def receive_from_external_ws(self):
@@ -56,7 +62,7 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
             try:
                 message = json.loads(await self.websocket.recv())
                 message["is_disconnected"] = False
-                if message["group_id"]==self.group_name:
+                if message["group_id"] == self.group_name:
                     await self.handle_message(message)
             except websockets.ConnectionClosed:
                 await self.handle_disconnection()
@@ -68,20 +74,12 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         while True:
             try:
                 reconnection_attempts += 1
-                last_messages = cache.get(self.group_name, [])
-                last_message = last_messages[-1] if last_messages else {}
-                
-                if reconnection_attempts == 1:
-                    last_message["disconnected_at"] = datetime.now().isoformat()
-                last_message["reconnection_attempts"] = reconnection_attempts
-                last_message["is_disconnected"] = True
-                
-                if last_messages:
-                    last_messages[-1] = last_message
-                else:
-                    last_messages.append(last_message)
-                    
-                cache.set(self.group_name, last_messages, self.cache_time)
+                last_message = {
+                    "is_disconnected": True,
+                    "reconnection_attempts": reconnection_attempts,
+                    "disconnected_at": datetime.now().isoformat() if reconnection_attempts == 1 else None
+                }
+
                 await self.send(text_data=json.dumps({'message': last_message}))
 
                 await asyncio.sleep(5)
@@ -90,23 +88,17 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
             except Exception:
                 pass
 
-        last_messages = cache.get(self.group_name, [])
-        if last_messages:
-            last_message = last_messages[-1]
-            last_message.pop("disconnected_at", None)
-            last_message.pop("reconnection_attempts", None)
-            last_message["is_disconnected"] = False
-            cache.set(self.group_name, last_messages, self.cache_time)
-            
-            await self.channel_layer.group_send(
-                self.group_name,
-                {'type': 'send_message', 'message': last_message}
-            )
+        # Update last message on reconnection
+        last_message = {"is_disconnected": False}
+        await self.channel_layer.group_send(
+            self.group_name,
+            {'type': 'send_message', 'message': last_message}
+        )
 
     async def connect_external_ws(self):
         try:
             self.websocket = await websockets.connect(self.url_external)
-        except Exception as e:
+        except Exception:
             await self.handle_disconnection()
 
     async def send_to_external_ws(self, message):
@@ -122,18 +114,13 @@ class BaseWebSocketConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'message': event['message']}))
 
     async def handle_message(self, message):
-        last_messages = cache.get(self.group_name, [])
-        
-        if not last_messages or message != last_messages[-1]:
-            if len(last_messages) >= self.max_messages:
-                last_messages.pop(0)  # Remove the oldest message
+        if not self.last_messages or message != self.last_messages[-1]:
+            if len(self.last_messages) >= self.max_messages:
+                self.last_messages.pop(0)  # Remove the oldest message
             
-            last_messages.append(message)
-            cache.set(self.group_name, last_messages, self.cache_time)
-            
+            self.last_messages.append(message)
+
             await self.channel_layer.group_send(
                 self.group_name,
                 {'type': 'send_message', 'message': message}
             )
-
-

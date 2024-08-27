@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
+    'adrf',
     'daphne',
     'channels',
     'node_red',
@@ -136,8 +138,11 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION':  'C:/tmp/django_cache',  # Update the path as needed
+        'OPTIONS':
+        {
+            'ENCRYPTION_KEY':b'9duMak3PRBj3NTfYpjmM2zWdK2IfRDq6osoIRyeHT7c='
+        }
     }
 }
 ENCRYPTION_KEY_NODE_RED = None
-  # This is 16 bytes long
-
+API_KEY = 'YOUR_SECRET_API_KEY'
