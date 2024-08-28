@@ -146,3 +146,5 @@ CACHES = {
 }
 ENCRYPTION_KEY_NODE_RED = None
 API_KEY = 'YOUR_SECRET_API_KEY'
+NODE_RED_URL='http://127.0.0.1:1880'
+NODE_RED_WEBSOCKET_URI="ws://localhost:1880/ws/mywebsocket/test"
