@@ -61,7 +61,7 @@ async def server1(websocket, path):
     try:
         async for message in websocket:
             await server1_to_server2_q.put(message)
-            logger.info(f"Message received from Client on Server 1: {message}")
+            logger.info(f"Message received from Client on Server 1:")
     except ConnectionClosed:
         logger.info("Client disconnected from Server 1")
     finally:
@@ -79,11 +79,10 @@ async def server2(websocket, path):
     try:
         async for message in websocket:
             await server2_to_server1_q.put(message)
-            logger.info(f"Message received from Client on Server 2: {message}")
+            logger.info(f"Message received from Client on Server 2:")
     except ConnectionClosed:
         logger.info("Client disconnected from Server 2")
     finally:
-        # Unregister client
         server2_clients.remove(websocket)
 
 async def main():
