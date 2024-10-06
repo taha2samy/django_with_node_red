@@ -408,4 +408,17 @@ websocket_url = "ws://<new_server_ip>:<new_port>/ws/mywebsocket/test"
 as i mentioned you can change websocket_url from consumers.py remember you must change it in node red too 
 Ensure that this URL matches the server's address and port for the WebSocket connection to function correctly.
 
+this same exmple how make django connect nodered
+
+![alt text](<2a7271140369153bbededfb73fefad4cdd8ed029 (2).gif>)
+
+The primary line of defense is Django. In this scenario, we have two individuals trying to access the same page: one is authorized, and the other is not. Ideally, a non-authorized user should not be able to access a specific page unless granted permission. This example assumes the unauthorized user somehow reaches the page or WebSocket. In such a case, the connection should be terminated immediately, informing them that access is denied.
+
+Additionally, using TLS with WebSocket adds an extra layer of security. As previously mentioned, we have two tables: one for users and another for groups, to define the permissions for each. Permissions are categorized into 'read' and 'read with change'.
+
+ 
+![alt text](a26a2d4f8223529c5c2b0115ba258d784abf6c21.gif)
+
+![alt text](image.png)
+
 ---
