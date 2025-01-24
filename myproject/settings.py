@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -120,7 +121,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',  # الافتراضية
+    'django.contrib.auth.backends.ModelBackend',  
 )
 STATIC_URL = 'static/'
 
@@ -143,7 +144,13 @@ CACHES = {
         }
     }
 }
-ENCRYPTION_KEY_NODE_RED = None
-API_KEY = 'YOUR_SECRET_API_KEY'
-NODE_RED_URL='http://127.0.0.1:1880'
-NODE_RED_WEBSOCKET_URI="ws://localhost:1880/ws/mywebsocket/test"
+
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY, 
+}

@@ -8,6 +8,8 @@ django = "*"
 channels = "*"
 daphne = "*"
 websockets = "*"
+djangorestframework-simplejwt = "*"
+orjson = "*"
 
 [dev-packages]
 
