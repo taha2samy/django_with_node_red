@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Debugging</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        #messages {
+            margin: 20px auto;
+            width: 80%;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            height: 300px;
+            overflow-y: auto;
+            font-family: Consolas, monospace;
+            background-color: #fafafa;
+        }
+
+        #messages p {
+            background-color: #e2e2e2;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        input[type="text"] {
+            width: 75%;
+            padding: 10px;
+            margin-right: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .debug-output {
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #555;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Debugging</h1>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type a message" />
+    <button onclick="sendMessage()">Send Message</button>
+
+    <div class="debug-output" id="debugOutput"></div>
+
+    <script>
+        const ws = new WebSocket("ws://" + window.location.host + "/browser/simple/");
+        function sendmMessage(type, elementId) {
+    const message = {
+        type: type, // Message type, e.g., "subscribe" or "unsubscribe"
+        element_id: elementId // The element ID to interact with
+    };
+    
+    // Ensure the WebSocket is open before sending the message
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        console.log("Message sent:", message);
+    } else {
+        console.error("WebSocket is not open. Current state:", ws.readyState);
+    }
+}
+
+        ws.onopen = function() {
+            logMessage("WebSocket connection opened.", "info");
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            logMessage(`Received message: ${JSON.stringify(data)}`, "info");
+            displayMessage(data.message || "No message content");
+        };
+
+        ws.onclose = function() {
+            logMessage("WebSocket connection closed.", "info");
+        };
+
+        function sendMessage() {
+            const messageInput = document.getElementById("messageInput").value;
+            if (messageInput.trim() === "") {
+                logMessage("Message input cannot be empty.", "error");
+                return;
+            }
+
+            const message = { message: messageInput };
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(message));
+                logMessage(`Sent message: ${JSON.stringify(message)}`, "info");
+                displayMessage(`Sent: ${messageInput}`, "sent");
+            } else {
+                logMessage("WebSocket is not open. Current state: " + ws.readyState, "error");
+            }
+        }
+
+        function sendAction(type, elementId) {
+            const message = {
+                type: type, // Message type, e.g., "subscribe" or "unsubscribe"
+                element_id: elementId
+            };
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(message));
+                logMessage(`Sent action message: ${JSON.stringify(message)}`, "info");
+            } else {
+                logMessage("WebSocket is not open. Current state: " + ws.readyState, "error");
+            }
+        }
+
+        function logMessage(message, level) {
+            const debugOutput = document.getElementById("debugOutput");
+            const logClass = level === "error" ? "error" : "info";
+            debugOutput.innerHTML += `<div class="${logClass}">${message}</div>`;
+        }
+
+        function displayMessage(message, className = "received") {
+            const messagesDiv = document.getElementById("messages");
+            const messageElement = document.createElement("p");
+            messageElement.classList.add(className);
+            messageElement.textContent = message;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

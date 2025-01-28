@@ -7,7 +7,11 @@ from django.conf import settings
 import uuid
 # Define choices for devices and status permissions
 
+def generate_uuid_device():
 
+    return uuid.uuid5(uuid.NAMESPACE_DNS, 'Device'+str(uuid.uuid4()))
+def generate_uuid_element():
+    return uuid.uuid5(uuid.NAMESPACE_DNS, 'element'+str(uuid.uuid4()))
 
 STATUS_CHOICES = [
     ('R', 'Read'),
@@ -16,7 +20,7 @@ STATUS_CHOICES = [
 
 class Device(models.Model):
     """Model representing a device with specific attributes."""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid5(uuid.NAMESPACE_DNS, 'Device'), editable=False)
+    id = models.UUIDField(primary_key=True, default=generate_uuid_device, editable=False)
     name = models.CharField(max_length=50)
     description = models.TextField()
     token = models.CharField(max_length=1000, blank=True, null=True)
@@ -39,7 +43,7 @@ class Device(models.Model):
         pass
 class Element(models.Model):
     """Model representing an element with specific attributes."""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid5(uuid.NAMESPACE_DNS, 'element'), editable=False)
+    id = models.UUIDField(primary_key=True, default=generate_uuid_element, editable=False)
     name = models.CharField(max_length=50)
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
 
@@ -55,34 +59,44 @@ class Element(models.Model):
 class PermissionManager(models.Manager):
     """Custom manager for handling permission logic for users and groups."""
 
-    def has_permission(self, user, element):
+    def get_user_permission(self, user, element):
         """
-        Check if the user has direct permission for the element.
-        If not, check if the user's groups have permission.
+        check if the user has permission for the element.
         """
         # Check for direct user permission
         element_permission = ElementPermissionsUser.objects.filter(user=user, element=element).first()
         if element_permission:
-            return element_permission.permissions
+            return element_permission
 
-        # Check for group permission
-        user_groups = user.groups.all()
-        group_permission = ElementPermissionsGroup.objects.filter(group__in=user_groups, element=element).first()
-        if group_permission:
-            return group_permission.permissions
 
         return None
 
-    def has_user_permission_bygroup(self, user, element):
+    def get_max_group_permission(self,user,element):
         """
-        Check if the user's groups have permission for the element.
+        Get the maximum permission for a group on an element.
         """
-        user_groups = user.groups.all()
-        group_permission = ElementPermissionsGroup.objects.filter(group__in=user_groups, element=element).first()
-        if group_permission:
-            return group_permission.permissions
+        groups = user.groups.all()
+        element_permission = ElementPermissionsGroup.objects.filter(group__in=groups, element=element).order_by('permissions').last()
+        if element_permission:
+            return element_permission
         return None
+    def get_max_permission(self, user, element):
+        """
+        Get the maximum permission for a user on an element.
+        """
+        user_permission = self.get_user_permission(user, element)
+        group_permission = self.get_max_group_permission(user, element)
 
+        if user_permission and user_permission.permissions == 'RC':
+            return user_permission
+        if group_permission and group_permission.permissions == 'RC':
+            return group_permission
+        if user_permission and user_permission.permissions == 'R':
+            return user_permission
+        if group_permission and group_permission.permissions == 'R':
+            return group_permission
+
+        return None
 class ElementPermissionsUser(models.Model):
     """Model to represent user permissions for specific elements."""
 

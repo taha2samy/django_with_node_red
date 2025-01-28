@@ -15,7 +15,6 @@ class AuthMiddlewareDevice(BaseMiddleware):
     """
 
     async def __call__(self, scope, receive, send):
-        print("AuthMiddlewareDevice =================")
         token = None
 
         try:
@@ -42,8 +41,10 @@ class AuthMiddlewareDevice(BaseMiddleware):
         try:
             # Decode the token
             payload = jwt.decode(token, settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=[settings.SIMPLE_JWT['ALGORITHM']])
-            device_id = payload['id']
+            device_id = payload['id']        
             device = Device.objects.get(id=device_id)
+            if device.token != token:
+                raise jwt.InvalidTokenError
             elements = Element.objects.filter(device_id=device_id)
             # Serialize the data and return serialized response
             device_data = DeviceSerializer(device).data

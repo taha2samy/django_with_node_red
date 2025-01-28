@@ -13,16 +13,21 @@ class NodeRed(AsyncWebsocketConsumer):
         # This method is called when a WebSocket connection is requested
         self.device = self.scope.get('device')
         elements = self.scope.get('element')
-        self.elements_data = {e['id']: e for e in elements}  # Initialize the dictionary
-        self.elements_ids = set(self.elements_data.keys())   # Extract all element IDs
+        if elements is not None:
+            self.elements_data = {e['id']: e for e in elements}
+            self.elements_ids = set(self.elements_data.keys())
+        else:
+            self.elements_data = {}
+            self.elements_ids = set()
 
-        # Add groups concurrently
+        print(f"Connected to device: {self.scope['path']}")
         await asyncio.gather(
             *(self.channel_layer.group_add(e_id, self.channel_name) for e_id in self.elements_ids),
             self.channel_layer.group_add(self.device['id'], self.channel_name)
         )
 
         await self.accept()
+
 
 
     async def disconnect(self, close_code):
@@ -59,7 +64,6 @@ class NodeRed(AsyncWebsocketConsumer):
                 )
         except Exception as e:
             # Handle exception (consider logging it for debugging)
-            print(f"Error processing message: {e}")
             pass
 
     async def message_element(self, message):
@@ -72,3 +76,28 @@ class NodeRed(AsyncWebsocketConsumer):
                     }
                 ).decode('utf-8')  # Decode to string for WebSocket transmission
             )
+    async def device_updates(self,event):
+        if event['state']=="update":
+            self.device=event["message"]
+            pass
+        
+        elif event['state']=="delete":
+            await self.close()
+            
+        else:
+            pass
+    async def elements_updates(self,event):
+        if event["state"]=="create":
+            await self.channel_layer.group_add( event['message']["id"], self.channel_name)
+            self.elements_ids.add(event['message']["id"])
+            self.elements_data[event['message']["id"]]=event["message"]
+            pass
+        elif event["state"]=="update":
+            self.elements_data[event['message']["id"]]=event["message"]
+            pass
+        elif event["state"]=="delete":
+            await self.channel_layer.group_discard( event['message']["id"], self.channel_name)
+            self.elements_ids.discard(event['message']["id"])
+            del self.elements_data[event['message']["id"]]
+            pass
+        pass
