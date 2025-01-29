@@ -64,7 +64,7 @@ def element_post_delete(sender,instance,**kwargs):
             "state":state
         }
     )
-    cache.delete(message["id"])
+    cache.delete(f"{instance.id}cache")
     pass
 @receiver(post_save,sender=ElementPermissionsUser)
 def element_permissions_user_post_save(sender, instance, created, **kwargs):
@@ -94,7 +94,7 @@ def element_permissions_group_post_save(sender, instance, created, **kwargs):
             "channel":f"{instance.id}{instance._meta.model_name}"
         }
     )
-receiver(post_delete,sender=ElementPermissionsUser)
+@receiver(post_delete,sender=ElementPermissionsUser)
 def element_permissions_user_post_delete(sender, instance, **kwargs):
     channel_layer = get_channel_layer()
     message = model_to_dict(instance)

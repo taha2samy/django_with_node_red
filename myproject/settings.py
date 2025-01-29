@@ -150,6 +150,24 @@ Devices_Key = SECRET_KEY
 DEVICES_SETTING = {
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': Devices_Key,
-    "LIFETIME": timedelta(hours=15)
+    "LIFETIME": timedelta(hours=15),
+    "INDATABASE": False
+}
+LOGGING_CONFIG = None
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
 }
 

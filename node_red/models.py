@@ -30,10 +30,10 @@ class Device(models.Model):
         """Generate a JWT for the device."""
         payload = {
             'id': str(self.id),
-            'exp': datetime.utcnow() + settings.SIMPLE_JWT['LIFETIME'], 
+            'exp': datetime.utcnow() + settings.DEVICES_SETTING['LIFETIME'], 
             'iat': datetime.utcnow(),  
         }
-        token = jwt.encode(payload, settings.SIMPLE_JWT['SIGNING_KEY'], algorithm=settings.SIMPLE_JWT['ALGORITHM'])
+        token = jwt.encode(payload, settings.DEVICES_SETTING['SIGNING_KEY'], algorithm=settings.DEVICES_SETTING['ALGORITHM'])
         return token
     def save(self, *args, **kwargs):
         """Override the save method to generate a token if not provided."""

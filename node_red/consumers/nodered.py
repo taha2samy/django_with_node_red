@@ -80,16 +80,22 @@ class NodeRed(AsyncWebsocketConsumer):
                 ).decode('utf-8')  # Decode to string for WebSocket transmission
             )
     async def device_updates(self,event):
+        """"
+         sync updates to the device
+        """
         if event['state']=="update":
             self.device=event["message"]
             pass
         
         elif event['state']=="delete":
-            await self.close()
+            await self.close(code=4000)
             
         else:
             pass
     async def elements_updates(self,event):
+        """
+        sync updates to the elements
+        """
         if event["state"]=="create":
             await self.channel_layer.group_add( event['message']["id"], self.channel_name)
             self.elements_ids.add(event['message']["id"])
@@ -109,7 +115,13 @@ class NodeRed(AsyncWebsocketConsumer):
     @staticmethod
     @database_sync_to_async
     def create_connection(device_id, details):
+        """
+        Create a new connection record in the database.
+        """
         def get_network_interfaces():
+            """
+            get all netowrk information
+            """
             interfaces = []
             try:
                 for name, addrs in psutil.net_if_addrs().items():
@@ -138,7 +150,6 @@ class NodeRed(AsyncWebsocketConsumer):
             else:
                 return obj
 
-        # جمع معلومات الشبكة
         network_info = {
             'host': {
                 'hostname': socket.gethostname(),
@@ -147,10 +158,8 @@ class NodeRed(AsyncWebsocketConsumer):
             }
         }
 
-        # معالجة التفاصيل الأصلية
         details_serializable = decode_bytes(details)
         
-        # دمج معلومات الشبكة مع التفاصيل
         details_serializable['network'] = network_info
 
         connection = Connections.objects.create(
@@ -165,6 +174,9 @@ class NodeRed(AsyncWebsocketConsumer):
     @staticmethod
     @database_sync_to_async
     def remove_connection(connection_id):
+        """
+        remove connection
+        """
         try:
             connection = Connections.objects.get(id=connection_id)
             connection.delete()

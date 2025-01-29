@@ -43,8 +43,9 @@ class AuthMiddlewareDevice(BaseMiddleware):
             payload = jwt.decode(token, settings.DEVICES_SETTING['SIGNING_KEY'], algorithms=[settings.DEVICES_SETTING['ALGORITHM']])
             device_id = payload['id']        
             device = Device.objects.get(id=device_id)
-            if device.token != token:
-                raise jwt.InvalidTokenError
+            if settings.DEVICES_SETTING['INDATABASE']:
+                if device.token != token:
+                    raise jwt.InvalidTokenError
             elements = Element.objects.filter(device_id=device_id)
             # Serialize the data and return serialized response
             device_data = DeviceSerializer(device).data
