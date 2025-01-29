@@ -40,7 +40,7 @@ class AuthMiddlewareDevice(BaseMiddleware):
         """
         try:
             # Decode the token
-            payload = jwt.decode(token, settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=[settings.SIMPLE_JWT['ALGORITHM']])
+            payload = jwt.decode(token, settings.DEVICES_SETTING['SIGNING_KEY'], algorithms=[settings.DEVICES_SETTING['ALGORITHM']])
             device_id = payload['id']        
             device = Device.objects.get(id=device_id)
             if device.token != token:

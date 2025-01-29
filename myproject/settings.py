@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-j1fw(p*rb)q^x56m4j2tig!-or1106vl#lbm2sk=-b5+agg%g@'
-Devices_Key = SECRET_KEY
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -145,12 +145,11 @@ CACHES = {
     }
 }
 
+Devices_Key = SECRET_KEY
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': True,
+DEVICES_SETTING = {
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY, 
+    'SIGNING_KEY': Devices_Key,
+    "LIFETIME": timedelta(hours=15)
 }
+

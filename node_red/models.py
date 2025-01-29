@@ -30,7 +30,7 @@ class Device(models.Model):
         """Generate a JWT for the device."""
         payload = {
             'id': str(self.id),
-            'exp': datetime.utcnow() + timedelta(hours=15), 
+            'exp': datetime.utcnow() + settings.SIMPLE_JWT['LIFETIME'], 
             'iat': datetime.utcnow(),  
         }
         token = jwt.encode(payload, settings.SIMPLE_JWT['SIGNING_KEY'], algorithm=settings.SIMPLE_JWT['ALGORITHM'])
