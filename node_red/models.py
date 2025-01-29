@@ -8,10 +8,12 @@ import uuid
 # Define choices for devices and status permissions
 
 def generate_uuid_device():
-
     return uuid.uuid5(uuid.NAMESPACE_DNS, 'Device'+str(uuid.uuid4()))
 def generate_uuid_element():
     return uuid.uuid5(uuid.NAMESPACE_DNS, 'element'+str(uuid.uuid4()))
+def generate_uuid_connection():
+    return uuid.uuid5(uuid.NAMESPACE_DNS, 'device connection'+str(uuid.uuid4()))
+
 
 STATUS_CHOICES = [
     ('R', 'Read'),
@@ -40,7 +42,16 @@ class Device(models.Model):
         super().save(*args, **kwargs)
     def __str__(self) -> str:
         return self.name
-        pass
+        
+class Connections(models.Model):
+    id = models.UUIDField(primary_key=True, default=generate_uuid_connection, editable=False)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='connections')
+    details = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Connection for device {self.device.name}"
+    
 class Element(models.Model):
     """Model representing an element with specific attributes."""
     id = models.UUIDField(primary_key=True, default=generate_uuid_element, editable=False)

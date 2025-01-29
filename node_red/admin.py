@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Device, Element, ElementPermissionsUser, ElementPermissionsGroup
+from .models import Device, Element, ElementPermissionsUser, ElementPermissionsGroup,Connections
 
 # Register Device model to the admin panel
 class DeviceAdmin(admin.ModelAdmin):
@@ -8,7 +8,11 @@ class DeviceAdmin(admin.ModelAdmin):
     readonly_fields = ('id', 'token')
 
 admin.site.register(Device, DeviceAdmin)
-
+# Register Connections model to the admin panel
+class ConnectionsAdmin(admin.ModelAdmin):
+    list_display = ('id','device')
+    pass
+admin.site.register(Connections, ConnectionsAdmin)
 # Register Element model to the admin panel
 class ElementAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'element_id', 'points', 'description')
