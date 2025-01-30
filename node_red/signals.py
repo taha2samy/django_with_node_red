@@ -4,14 +4,13 @@ from .models import Device,Element,ElementPermissionsGroup,ElementPermissionsUse
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.forms.models import model_to_dict
-from .serializers import DeviceSerializer,ElementSerializer
 from django.core.cache import cache
 
 @receiver(post_save, sender=Device)
 def device_post_save(sender, instance, created, **kwargs):
     state="update"
     channel_layer = get_channel_layer()
-    message = DeviceSerializer(instance).data
+    message = model_to_dict(instance)
     async_to_sync(channel_layer.group_send)(
         str(instance.id),  # Replace with your group name
         {
@@ -23,7 +22,7 @@ def device_post_save(sender, instance, created, **kwargs):
 @receiver(post_delete,sender=Device)
 def device_post_delete(sender, instance,**kwargs):
     state="delete"
-    message=DeviceSerializer(instance).data
+    message=model_to_dict(instance)
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         str(instance.id),  # Replace with your group name
@@ -42,7 +41,7 @@ def element_post_save(sender, instance, created, **kwargs):
     else:
         state="update"
     channel_layer = get_channel_layer()
-    message = ElementSerializer(instance).data
+    message = model_to_dict(instance)
     async_to_sync(channel_layer.group_send)(
         str(message['device']), 
         {

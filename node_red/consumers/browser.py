@@ -56,7 +56,8 @@ class BrowserConsumer(AsyncWebsocketConsumer):
                         "type": "subscribe",
                         "element_id": data["element_id"],
                         "subscribed": True,
-                        "permissions": permission.permissions
+                        "permissions": permission.permissions,
+                        "detalis": element.details
                     }).decode("utf-8"))
 
                     # get old points from cache for the element and send them to the user
@@ -122,55 +123,56 @@ class BrowserConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=orjson.dumps(message).decode("utf-8"))
 
     async def permissions_updates(self, event):
-        if event["state"] == "update" or event["state"] == "create":
-            l = await self.get_permissions(self.user, event["message"]["element"])
-            permission = l[0]
-            element = l[1]
-            
-            if permission is not None:
-                
-                self.groups.update({str(event["message"]["element"]): permission.permissions})
-                channel_of_permission= f"{permission.id}{permission._meta.model_name}"
-                if channel_of_permission not in self.groups.keys():
-                    print("channel_of_permission",channel_of_permission)
-                    await self.channel_layer.group_add(channel_of_permission, self.channel_name)
-                    self.groups.update({channel_of_permission:permission.permissions})
-                    self.groups.pop(event["channel"])
-                    await self.channel_layer.group_discard(str(event["channel"]), self.channel_name)
-            else:
-                # remove yourself from the group
-                self.groups.pop(event["message"]["element"], None)
-                self.groups.pop(event["channel"], None)
-
-                await self.channel_layer.group_discard(str(event["message"]["element"]), self.channel_name)
-                await self.channel_layer.group_discard(str(event["channel"]), self.channel_name)
-                await self.send(text_data=orjson.dumps({
-                    "type": "unsubscribe",
-                    "element_id": event["message"]["element"]
-                }).decode("utf-8"))
-               
-
+        if event["state"] in ["update", "create"]:
+            await self.handle_update_or_create(event)
         elif event["state"] == "delete":
-            l = await self.get_permissions(self.user, event["message"]["element"])
-            permission = l[0]
-            element = l[1]
-            
-            if permission is not None:
-                self.groups.update({str(event["message"]["element"]): permission.permissions})
-                channel_of_permission= f"{permission.id}{permission._meta.model_name}"
-                if channel_of_permission in self.groups.keys():
-                    self.channel_layer.group_add(channel_of_permission, self.channel_name)
-                    self.groups.update({channel_of_permission:permission.permissions})
-                    self.groups.pop(event["channel"])
-                    await self.channel_layer.group_discard(str(event["channel"]), self.channel_name)
-            else:
-                self.groups.pop(event["message"]["element"], None)
-                self.groups.pop(event["channel"], None)
-                await self.channel_layer.group_discard(str(event["message"]["element"]), self.channel_name)
-                await self.channel_layer.group_discard(str(event["channel"]), self.channel_name)
-                await self.send(text_data=orjson.dumps({
-                    "type": "unsubscribe",
-                    "element_id": event["message"]["element"]
-                }).decode("utf-8"))
-                
-        pass
+            await self.handle_delete(event)
+
+    async def handle_update_or_create(self, event):
+        l = await self.get_permissions(self.user, event["message"]["element"])
+        permission, element = l
+        print(permission.permissions)
+        if permission is not None:
+            await self.update_permissions(event, permission)
+        else:
+            await self.remove_from_groups(event)
+
+    async def handle_delete(self, event):
+        l = await self.get_permissions(self.user, event["message"]["element"])
+        permission, element = l
+
+        if permission is not None:
+            await self.update_permissions(event, permission)
+        else:
+            await self.remove_from_groups(event)
+
+    async def update_permissions(self, event, permission):
+        element_id = str(event["message"]["element"])
+        channel_of_permission = f"{permission.id}{permission._meta.model_name}"
+        if self.groups.get(element_id) != permission.permissions:
+            self.groups[element_id] = permission.permissions
+            await self.send(text_data=orjson.dumps({
+                "type": "subscribe",
+                "element_id": event["message"]["element"],
+                "subscribed": True,
+                "permissions": permission.permissions
+            }).decode("utf-8"))
+
+        if channel_of_permission not in self.groups:
+            await self.channel_layer.group_add(channel_of_permission, self.channel_name)
+            self.groups[channel_of_permission] = permission.permissions
+            self.groups.pop(event["channel"], None)
+            await self.channel_layer.group_discard(event["channel"], self.channel_name)
+
+    async def remove_from_groups(self, event):
+        element_id = str(event["message"]["element"])
+        self.groups.pop(element_id, None)
+        self.groups.pop(event["channel"], None)
+
+        await self.channel_layer.group_discard(element_id, self.channel_name)
+        await self.channel_layer.group_discard(event["channel"], self.channel_name)
+        await self.send(text_data=orjson.dumps({
+            "type": "unsubscribe",
+            "element_id": event["message"]["element"],
+            "unsubscribe": True
+        }).decode("utf-8"))

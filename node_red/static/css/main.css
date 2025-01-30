@@ -1,0 +1,43 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    padding: 20px;
+    text-align: center;
+}
+.card-header {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-left: 10px;
+}
+.status-active {
+    background-color: #28a745;
+}
+.status-inactive {
+    background-color: #dc3545;
+}
+.gauge-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.text-center {
+    text-align: center;
+}

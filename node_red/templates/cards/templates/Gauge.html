@@ -1,0 +1,94 @@
+{% load static %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gauge Example</title>
+
+    <!-- مكتبة Canvas Gauges -->
+    <script src="https://cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.7/all/gauge.min.js"></script>
+
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            {{ element.details.name }}
+            <span class="status-{{ element.id }}" id="{{ element.id }}-status"></span>
+        </div>
+        <div class="card-body">
+            <div class="gauge-container">
+                <canvas id="{{ element.id }}" width="200" height="200" style="width: 200px; height: 200px;"></canvas>
+            </div>
+            <p class="text-center mt-3">Current Value: <span id="{{ element.id }}-value">59</span> {{ element.details.unit|default:"Count" }}</p>
+        </div>
+    </div>
+
+    <script>
+        // تعريف كلاس لـ SensorGauge
+        class SensorGauge {
+            constructor(elementId, details) {
+                this.elementId = elementId;
+                this.details = details;
+
+                // إنشاء Gauge باستخدام Canvas Gauges
+                this.gauge = new RadialGauge({
+                    renderTo: this.elementId,
+                    width: 200,
+                    height: 200,
+                    units: "{{ element.details.unit }}" || "°C",
+                    minValue: this.details.min_value || 0,
+                    maxValue: this.details.max_value || 100,
+                    majorTicks: this.details.major_ticks || [0, 20, 40, 60, 80, 100],
+                    minorTicks: 5,
+                    highlights: this.details.high_lights || [],
+                    valueBox: this.details.value_box,
+                    valueBoxStroke: this.details.value_box || "#2C3E50", // تحديد لون الحد الخارجي
+                    valueBoxBorderRadius: this.details.value_box_border_radius ||5, // تعيين نصف قطر الزوايا
+                    valueBoxWidth: this.details.value_box_width || 5, // عرض صندوق القيمة
+                    valueBoxHeight: this.details.value_box_height || 5, // ارتفاع صندوق القيمة
+                    valueBoxFont: this.details.value_box_font || 'bold 16px Arial', // تعيين الخط
+                    valueBoxBackground: this.details.value_box_background || '#2C3E50', // تعيين لون الخلفية
+                    valueBoxTextColor: this.details.value_box_text_color || '#fff', // تعيين لون النص
+                
+                }).draw();
+            }
+
+            // تعيين قيمة جديدة
+            setValue(value) {
+                this.gauge.value = value;
+                document.getElementById(this.elementId + "-value").textContent = value;
+            }
+
+            // تعيين حالة الاتصال
+            setStatus(status) {
+                const statusElement = document.getElementById(this.elementId + "-status");
+                if (status === 'connected') {
+                    statusElement.textContent = 'Connected';
+                    statusElement.style.color = 'green';
+                } else if (status === 'disconnected') {
+                    statusElement.textContent = 'Disconnected';
+                    statusElement.style.color = 'red';
+                } else {
+                    statusElement.textContent = 'Unknown';
+                    statusElement.style.color = 'gray';
+                }
+            }
+        }
+
+        // إنشاء كائن جديد من الكلاس SensorGauge
+        const sensorGauge = new SensorGauge("{{ element.id }}", {{ element.details|safe }});
+
+        // محاكاة بيانات WebSocket
+        const simulateWebSocketData = () => {
+            const simulatedValue = Math.floor(Math.random() * 101); // قيمة عشوائية بين 0 و 100
+            sensorGauge.setValue(simulatedValue);
+        };
+
+        // تحديث البيانات كل 2 ثانية (محاكاة WebSocket)
+
+    </script>
+
+</body>
+</html>

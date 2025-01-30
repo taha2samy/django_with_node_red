@@ -62,8 +62,8 @@ class Element(models.Model):
     points = models.IntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(1000)]
     )
-    description = models.TextField()
-
+    description = models.TextField(null=True, blank=True)
+    details = models.JSONField(null=True, blank=True)
     def __str__(self) -> str:
         return f"{self.element_id}: {self.name}"
 
