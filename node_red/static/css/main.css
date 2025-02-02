@@ -1,31 +1,34 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
+    background-color: #f8f9fa;
 }
 .card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 300px;
-    padding: 20px;
-    text-align: center;
+    margin-bottom: 20px;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+    width: 100%;
+}
+
+.card:hover {
+    transform: translateY(-5px);
 }
 .card-header {
-    font-size: 18px;
     font-weight: bold;
-    margin-bottom: 20px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+}
+.sensor-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
 }
 .status-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    margin-left: 10px;
+    display: inline-block;
+    margin-right: 5px;
 }
 .status-active {
     background-color: #28a745;
@@ -34,10 +37,45 @@ body {
     background-color: #dc3545;
 }
 .gauge-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    text-align: center;
+}
+.gauge-container canvas {
+    width: 200px;
+    height: 200px;
+}
+
+
+
+.chart-container {
+    text-align: center;
+}
+.chart-container canvas {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
 }
 .text-center {
+    font-size: 1.1rem;
+    margin-top: 10px;
+}
+.form-switch .form-check-input {
+    width: 3em; /* حجم الزر */
+    height: 1.5em;
+    margin-left: 0;
+    cursor: pointer;
+}
+.form-switch .form-check-label {
+    margin-left: 10px;
+    cursor: pointer;
+}
+.form-range {
+    width: 100%;
+    cursor: pointer;
+}
+
+.form-label {
+    margin-top: 10px;
+    display: block;
     text-align: center;
+    font-size: 1.1rem;
 }

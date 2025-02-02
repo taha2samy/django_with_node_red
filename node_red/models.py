@@ -5,6 +5,8 @@ import jwt
 from datetime import datetime, timedelta
 from django.conf import settings
 import uuid
+from channels.db import database_sync_to_async
+
 # Define choices for devices and status permissions
 
 def generate_uuid_device():
@@ -30,8 +32,8 @@ class Device(models.Model):
         """Generate a JWT for the device."""
         payload = {
             'id': str(self.id),
-            'exp': datetime.utcnow() + settings.DEVICES_SETTING['LIFETIME'], 
-            'iat': datetime.utcnow(),  
+            'exp': int((datetime.now() + settings.DEVICES_SETTING['LIFETIME']).timestamp()), 
+            'iat': int(datetime.now().timestamp()),  
         }
         token = jwt.encode(payload, settings.DEVICES_SETTING['SIGNING_KEY'], algorithm=settings.DEVICES_SETTING['ALGORITHM'])
         return token
@@ -52,18 +54,27 @@ class Connections(models.Model):
     def __str__(self) -> str:
         return f"Connection for device {self.device.name}"
     
+ 
 class Element(models.Model):
     """Model representing an element with specific attributes."""
     id = models.UUIDField(primary_key=True, default=generate_uuid_element, editable=False)
     name = models.CharField(max_length=50)
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
 
-    element_id = models.CharField(max_length=50,unique=True)
+    element_id = models.CharField(max_length=50, unique=True)
     points = models.IntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(1000)]
     )
     description = models.TextField(null=True, blank=True)
     details = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @database_sync_to_async
+    def is_connected(self):
+        """Check if the element's device has any connections."""
+        return Connections.objects.filter(device=self.device).exists()
+       
+
     def __str__(self) -> str:
         return f"{self.element_id}: {self.name}"
 

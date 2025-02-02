@@ -1,0 +1,30 @@
+{% load filters %}
+{% with elment_new_id=x|append_uuid %}
+
+<div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>{{ element.details.title|default:"title" }} </span>
+                <span class="status-indicator" id="{{elment_new_id}}-status"></span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="{{elment_new_id}}" width="200" height="200" style="width: 200px; height: 200px;"></canvas>
+                </div>
+                <p class="text-center">Current Value: <span id="{{elment_new_id}}-value">59</span> {{ element.details.unit|default:"Count"|safe }}</p>
+            </div>
+        </div>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof window.all_elements === 'undefined') {
+            window.all_elements = {};
+        }
+        if (!window.all_elements["{{element.id}}"]) {
+            window.all_elements["{{element.id}}"] = [];
+        }
+        window.all_elements["{{element.id}}"].push(new SensorChart("{{elment_new_id}}", {{element.details|default:"{}"|safe}}));
+    });
+</script>
+
+{% endwith %}

@@ -5,5 +5,7 @@ from .models import Device,Element
 def test_view(request):
     return render(request,'test.html')
 def tester_view(request):
-    elment=Element.objects.all()[0]
-    return render(request,r'cards\templates\Gauge.html',{'element':elment})
+    
+    elements = Element.objects.all().order_by('element_id')
+
+    return render(request,r'cards\templates\test_guage.html',{'elements':elements})

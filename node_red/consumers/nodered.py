@@ -24,7 +24,6 @@ class NodeRed(AsyncWebsocketConsumer):
             self.elements_data = {}
             self.elements_ids = set()
 
-        print(f"Connected to device: {self.scope['path']}")
         await asyncio.gather(
             *(self.channel_layer.group_add(e_id, self.channel_name) for e_id in self.elements_ids),
             self.channel_layer.group_add(self.device['id'], self.channel_name)
@@ -45,26 +44,28 @@ class NodeRed(AsyncWebsocketConsumer):
         await self.remove_connection(self.connection_id)
 
     async def receive(self, text_data):
+        print(text_data)
         try:
             # Using orjson for faster JSON deserialization
             text_data_json = orjson.loads(text_data)
             element_id = text_data_json['element_id']
             message = text_data_json['message']
-
             # Use dictionary lookup instead of iterating through the list
+            print(message,element_id)
             if element_id in self.elements_ids:
+                
                 element_data = self.elements_data[element_id]
                 
                 cache_key = f"{element_id}cache"
                 queue = cache.get(cache_key, deque(maxlen=element_data['points']))
                 queue.append(message)
                 cache.set(cache_key, queue,timeout=None)
-        
+                print(message)
                 await self.channel_layer.group_send(
                     element_id,
                     {
                         'type': 'message_element',
-                        'id_element': element_id,
+                        'element_id': element_id,
                         'message': message,
                         'channel': str(self.channel_name),
                     }
@@ -186,4 +187,7 @@ class NodeRed(AsyncWebsocketConsumer):
         if event['connection_id']==self.connection_id:
             await self.remove_connection(self.connection_id)
             self.close()
+        pass
+
+    async def check_connection_element(self,event):
         pass

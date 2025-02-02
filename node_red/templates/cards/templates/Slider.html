@@ -1,0 +1,33 @@
+{% load filters %}
+{% with elment_new_id=x|append_uuid %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        {{ element.details.title|default:"title" }}
+        <span class="status-indicator" id="{{ elment_new_id }}-status"></span>
+    </div>
+
+    <div class="card-body">
+        <p class="card-text">{{element.details.description|default:"description"}}</p>
+        
+        <!-- Slider Input -->
+        <div class="form-group">
+            <input type="range" class="form-range" id="{{elment_new_id}}-input" min="{{details.min|default:0}}" max="{{details.max|default:100}}" step="1{{details.step|default:1}}">
+            <label class="form-label" id="{{elment_new_id}}-label" for="{{elment_new_id}}-input"></label>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        if (typeof window.all_elements === 'undefined') {
+            window.all_elements = {};
+        }
+        if (!window.all_elements["{{element.id}}"]) {
+            window.all_elements["{{element.id}}"] = [];
+        }
+        window.all_elements["{{element.id}}"].push(new SliderButton(elementId="{{ elment_new_id }}", details={{element.details|default:"{}"|safe}},"{{element.id}}"));
+    })();
+</script>
+
+{% endwith %}

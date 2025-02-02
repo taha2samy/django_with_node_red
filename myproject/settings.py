@@ -151,7 +151,8 @@ DEVICES_SETTING = {
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': Devices_Key,
     "LIFETIME": timedelta(hours=15),
-    "INDATABASE": False
+    "INDATABASE": False,
+    "CHEACKLIFETIME": False
 }
 LOGGING_CONFIG = None
 LOGGING = {

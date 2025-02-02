@@ -18,8 +18,15 @@ class MiddlewareDistrubuter:
     async def __call__(self, scope, receive, send):
         if scope["path"].startswith("/device/node_red"):
             inner_app = AuthMiddlewareDevice(self.inner_app)
-        else:
+        elif scope["path"].startswith("/browser/simple/"):
             inner_app = AuthMiddlewareStack(self.inner_app)
+        else:
+            # Close the connection if the path does not match any of the specified patterns
+            await send({
+                "type": "websocket.close",
+                "code": 4000,
+            })
+            return
         return await inner_app(scope, receive, send)
 
 

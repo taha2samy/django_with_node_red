@@ -5,7 +5,8 @@ from node_red.models import Element, ElementPermissionsGroup, ElementPermissions
 import orjson  # Replace json with orjson
 from django.core.cache import cache
 from collections import deque
-
+import traceback
+import uuid
 
 class BrowserConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -22,23 +23,23 @@ class BrowserConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_permissions(user, element_id):
         try:
-            element = Element.objects.get(id=element_id)
             
+            element = Element.objects.get(id=element_id)
             permission = ElementPermissionsUser.permission_manager.get_max_permission(user, element)
             return [permission, element]
-        except Element.DoesNotExist:
+        except:
             return [None, None]
 
     async def receive(self, text_data):
+        
         try:
             data = orjson.loads(text_data)
-
+       
             if data["type"] == "subscribe":
                 # check if the user has permission to access the element and subscribe to it
-                l = await self.get_permissions(self.user, data["element_id"])
-
-                permission = l[0]
-                element = l[1]
+                thissd = await self.get_permissions(self.user, data["element_id"])
+                permission = thissd[0]
+                element = thissd[1]
                 if permission is not None:
                     # channel of element
 
@@ -50,16 +51,16 @@ class BrowserConsumer(AsyncWebsocketConsumer):
                     await self.channel_layer.group_add(channel_of_permission, self.channel_name)
                     self.groups.update({channel_of_permission:permission.permissions })
 
-
+                   
                     # declare that the user has subscribed to the element
                     await self.send(text_data=orjson.dumps({
                         "type": "subscribe",
                         "element_id": data["element_id"],
                         "subscribed": True,
                         "permissions": permission.permissions,
-                        "detalis": element.details
+                        "detalis": element.details,
+                        "connected":await element.is_connected()
                     }).decode("utf-8"))
-
                     # get old points from cache for the element and send them to the user
                     old_points = list(cache.get(f"{data['element_id']}cache", deque(maxlen=element.points)))
                     for point in old_points:
@@ -83,18 +84,20 @@ class BrowserConsumer(AsyncWebsocketConsumer):
 
             elif data["type"] == "message_element":
                 if data["element_id"] in self.groups.keys():
-                    
 
                     if self.groups[data["element_id"]] == "RC":
-                        await self.send(text_data=orjson.dumps({"ss":data}).decode("utf-8"))
                         # if user has read and write permission, they can send and receive messages
+
                         await self.channel_layer.group_send(
                             data["element_id"],
                             {
                                 "type": "message_element",
                                 "element_id": data["element_id"],
                                 "message": data["message"],
-                                "channel": str(self.channel_name)
+                                "channel": str(self.channel_name),
+                                "server":"django",
+                                "user_id":self.user.id,
+                                "user":self.user.username
                             }
                         )
                     elif self.groups[data["element_id"]] == "R":
@@ -112,13 +115,18 @@ class BrowserConsumer(AsyncWebsocketConsumer):
                         pass
         except Exception as e:
             # if an error occurs, handle it here
-            await self.send(text_data=orjson.dumps({
+            error_details = {
                 "type": "error",
-                "error": str(e)
-            }).decode("utf-8"))
+                "error": str(e),
+                "details": traceback.format_exc()
+            }
+            await self.send(text_data=orjson.dumps(error_details).decode("utf-8"))
+            
             pass
 
     async def message_element(self, message):
+        if "server" in message and message["server"] == "django":
+            return
         if self.channel_name != message["channel"]:
             await self.send(text_data=orjson.dumps(message).decode("utf-8"))
 
@@ -131,7 +139,6 @@ class BrowserConsumer(AsyncWebsocketConsumer):
     async def handle_update_or_create(self, event):
         l = await self.get_permissions(self.user, event["message"]["element"])
         permission, element = l
-        print(permission.permissions)
         if permission is not None:
             await self.update_permissions(event, permission)
         else:
@@ -176,3 +183,11 @@ class BrowserConsumer(AsyncWebsocketConsumer):
             "element_id": event["message"]["element"],
             "unsubscribe": True
         }).decode("utf-8"))
+    
+    async def check_connection_element(self, event):
+        connection_status = event["status"] == "connected"
+        await self.send(text_data=orjson.dumps(event).decode("utf-8"))
+
+
+    
+        pass
